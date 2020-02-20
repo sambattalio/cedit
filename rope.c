@@ -81,6 +81,32 @@ Rope* rope_concat(Rope *node_a, Rope* node_b) {
     return new_parent;
 }
 
+
+// left stays in node
+// right is return val
+Rope* rope_split(Rope* node, int i) {
+    if (node->weight <= i && node->right) {
+        
+    }
+}
+
+
+// split && two concats
+void rope_insert(Rope* node, char* string, int i) {
+
+}
+
+// split rope in three ith and i+jth character
+// concat the end ones and delete middle
+void rope_delete(Rope* node, int i, int j) {
+
+}
+
+// in order traversal to print string
+void rope_report(Rope* node, int i, int j) {
+
+}
+
 void rope_print(Rope *node) {
     if (!node) return;
 
@@ -103,7 +129,7 @@ void postorder_print(Rope *node) {
 
 int main () {
     char* test_string = "Hello World";
-    char* test2_string = "! Beast";
+    char* test2_string = "! beast";
     Rope* root = (Rope*) calloc(1, sizeof(Rope));
     Rope* new_root = (Rope*) calloc(1, sizeof(Rope));
     rope_create(root, test_string, 0, strlen(test_string) - 1);
