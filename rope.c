@@ -15,6 +15,9 @@ struct Rope{
 
 const int MAX_SIZE = 2;
 
+void rope_print(Rope *node);
+void postorder_print(Rope *node);
+
 // recursively creates rope data structure based on string
 void rope_create(Rope *node, char* string, int l, int r) {
     if (!node) return;
@@ -81,30 +84,71 @@ Rope* rope_concat(Rope *node_a, Rope* node_b) {
     return new_parent;
 }
 
-
 // left stays in node
 // right is return val
 Rope* rope_split(Rope* node, int i) {
-    if (node->weight <= i && node->right) {
-        
+    Rope* search_node = node;
+    Rope* test;
+    
+    if (node->weight < i && node->right) {
+        test = rope_split(node->right, i - node->weight);
+        return test;
     }
+    
+    if (node->left) {
+        test = rope_split(node->left, i);
+        // cut right off
+        Rope* temp = node->right;
+        node->right = NULL;
+        if (!temp) return test;
+        if (!test) return temp;
+        return rope_concat(test, temp);
+    }
+
+    // check if i is in middle of leaf... split
+    if (i != node->weight) {
+        // put weight - 1 to left
+        node->left  = (Rope*) calloc(1, sizeof(Rope));
+        rope_create(node->left, node->data, 0, i - 1);
+        Rope* new = (Rope*) calloc(1, sizeof(Rope));
+        rope_create(new, node->data, i, node->weight);
+        node->weight = node->left->weight;
+        free(node->data);
+        node->data = NULL;
+        return new;
+    }
+
+    return NULL;
 }
 
 
 // split && two concats
-void rope_insert(Rope* node, char* string, int i) {
-
+Rope* rope_insert(Rope* node, char* string, int i) {
+    Rope* rhs = rope_split(node, i);
+    Rope* new = (Rope*) calloc(1, sizeof(Rope));
+    rope_create(new, string, 0, strlen(string));
+    node = rope_concat(node, new);
+    node = rope_concat(node, rhs);
+    return node;
 }
 
 // split rope in three ith and i+jth character
 // concat the end ones and delete middle
-void rope_delete(Rope* node, int i, int j) {
-
+Rope* rope_delete_range(Rope* node, int i, int j) {
+    Rope* to_del = rope_split(node, i);
+    Rope* keep   = rope_split(to_del, j - i);
+    rope_delete(to_del);
+    return rope_concat(node, keep);
 }
 
 // in order traversal to print string
+// To report the string Ci, …, Ci + j − 1, find the node u that contains Ci and weight(u) >= j, and then traverse T starting at node u. Output Ci, …, Ci + j − 1 by doing an in-order traversal of T starting at node u.
 void rope_report(Rope* node, int i, int j) {
-
+    if (!node) return;
+    rope_report(node->left, i, j);
+    if (node->data)
+        printf("%s", node->data);
+    rope_report(node->right, i, j);
 }
 
 void rope_print(Rope *node) {
@@ -136,7 +180,7 @@ int main () {
     rope_create(new_root, test2_string, 0, strlen(test2_string) - 1);
 
     root = rope_concat(root, new_root);
-
+    /*
     printf("traversing...\n"); 
     postorder_print(root);
     printf("\nlooping through index func\n");
@@ -145,6 +189,11 @@ int main () {
    
     rope_print(root);
     printf("\n");
+    */
+    
+    rope_print(root); printf("\n");
+    root = rope_delete_range(root, 5, 9);
+    rope_print(root); printf("\n");
 
     return 0;
 }

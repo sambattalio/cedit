@@ -5,12 +5,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <stdbool.h>
 
 int EDIT_FD = STDOUT_FILENO; // in case you want to change it?
 struct termios user_settings;
 
-const char* CLEAR_SCREEN = "\x1b[2J";
-const char* RESET_CURSOR = "\x1b[H";
+const char* CLEAR_SCREEN     = "\x1b[2J";
+const char* RESET_CURSOR     = "\x1b[H";
+const char* SAVE_CURSOR      = "\x1b[s";
+const char* RESTORE_CURSOR   = "\x1b[u";
+const char* MOVE_CURSOR_DOWN = "\x1b[100B";
+const char* CLEAR_LINE       = "\x1b[2K"; 
+bool COMMAND_MODE = false;
+
+
+typedef enum{
+    Save = 0x1,
+    Quit = 0x10
+} Command;
 
 // http://www.cs.uleth.ca/~holzmann/C/system/ttyraw.c
 // found this to help w/ termios shtuff
@@ -41,6 +53,31 @@ void fresh_screen() {
     write(EDIT_FD, RESET_CURSOR, strlen(RESET_CURSOR));
 }
 
+Command read_command() {
+    char c;
+
+    Command cmd = 0;
+
+    while ((read(STDIN_FILENO, &c, 1) == 1) && c != '\r') {
+        switch (c) {
+            case 'q':
+                cmd |= Quit;
+                break;
+            case 's':
+                cmd |= Save;
+                break;
+            default:
+                break;
+        }
+        write(EDIT_FD, &c, 1); 
+    }
+    return cmd;
+}
+
+void save_buffer() {
+    
+}
+
 int main(int argc, char** argv) {
     char c;
 
@@ -50,12 +87,26 @@ int main(int argc, char** argv) {
     fresh_screen();
 
     while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
-        switch (c) {
-            case '\r':
-                write(EDIT_FD, "\r\n", 2);
-                break;
-            default:
-                write(EDIT_FD, &c, 1); 
+        if (COMMAND_MODE) {
+            if (c == ':') {
+                write(EDIT_FD, SAVE_CURSOR, strlen(SAVE_CURSOR));
+                write(EDIT_FD, MOVE_CURSOR_DOWN, strlen(MOVE_CURSOR_DOWN));
+                Command cmd = read_command();
+                write(EDIT_FD, CLEAR_LINE, strlen(CLEAR_LINE));
+                write(EDIT_FD, RESTORE_CURSOR, strlen(RESTORE_CURSOR));
+                COMMAND_MODE = false;
+            }
+        } else {
+            switch (c) {
+                case '\r':
+                    write(EDIT_FD, "\r\n", 2);
+                    break;
+                case 27: // escape key
+                    COMMAND_MODE = true;
+                    break;
+                default:
+                    write(EDIT_FD, &c, 1);
+            }
         }
         //fflush(stdout);
     }
